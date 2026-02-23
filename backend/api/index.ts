@@ -1,8 +1,8 @@
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { handle } from 'hono/vercel';
-import { authRoutes } from '../src/routes/auth';
-import { promptRoutes } from '../src/routes/prompts';
+import { authRoutes } from '../src/routes/auth.js';
+import { promptRoutes } from '../src/routes/prompts.js';
 
 export const config = {
   runtime: 'nodejs',

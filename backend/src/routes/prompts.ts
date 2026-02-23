@@ -1,8 +1,8 @@
 import { Hono } from 'hono';
-import { db } from '../db';
-import { prompts, promptVersions, savedPrompts } from '../db/schema';
+import { db } from '../db/index.js';
+import { prompts, promptVersions, savedPrompts } from '../db/schema.js';
 import { eq, desc, and } from 'drizzle-orm';
-import { verifyToken } from './auth';
+import { verifyToken } from './auth.js';
 
 export const promptRoutes = new Hono();
 
