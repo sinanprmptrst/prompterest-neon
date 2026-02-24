@@ -8,3 +8,9 @@ frontend/dist/
 frontend/web/
 frontend/android/
 .claude/
+
+# Server / deployment internals (not for public repo)
+vps-info.txt
+cli-cheatsheet.txt
+info.txt
+DEPLOY_GUIDE.md

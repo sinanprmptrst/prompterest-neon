@@ -2,7 +2,7 @@ import type { RefactorResult, RefactorSegment } from '../types';
 
 // ── Backend API ───────────────────────────────────────────
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+const API_URL = import.meta.env.VITE_API_URL ?? '';
 
 export interface AuthUser { id: string; email: string; username: string; }
 
@@ -309,25 +309,13 @@ export async function generateImage(
 
   const imageBlob = await res.blob();
 
-  // Upload to imgbb for permanent URL
-  const imgbbKey = import.meta.env.VITE_IMGBB_KEY;
-  if (imgbbKey) {
-    const base64 = await new Promise<string>((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve((reader.result as string).split(',')[1]);
-      reader.onerror = reject;
-      reader.readAsDataURL(imageBlob);
-    });
-    const form = new FormData();
-    form.append('key', imgbbKey);
-    form.append('image', base64);
-    const uploadRes = await fetch('https://api.imgbb.com/1/upload', { method: 'POST', body: form });
-    if (uploadRes.ok) {
-      const uploadData = await uploadRes.json() as { data: { url: string } };
-      return { imageUrl: uploadData.data.url, imageBlob };
-    }
-  }
+  // Store as base64 data URL directly in Neon
+  const dataUrl = await new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(imageBlob);
+  });
 
-  // Fallback: blob URL (temporary)
-  return { imageUrl: URL.createObjectURL(imageBlob), imageBlob };
+  return { imageUrl: dataUrl, imageBlob };
 }

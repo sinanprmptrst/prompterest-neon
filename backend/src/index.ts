@@ -2,8 +2,8 @@ import 'dotenv/config';
 import { serve } from '@hono/node-server';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
-import { authRoutes } from './routes/auth';
-import { promptRoutes } from './routes/prompts';
+import { authRoutes } from './routes/auth.js';
+import { promptRoutes } from './routes/prompts.js';
 
 const app = new Hono();
 

@@ -1,0 +1,41 @@
+services:
+  backend:
+    build: ./backend
+    image: sinanaqcan/prompterest-backend:latest
+    container_name: sinan-backend
+    restart: always
+    expose:
+      - "3000"
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      JWT_SECRET: ${JWT_SECRET}
+      PORT: 3000
+    networks:
+      - sinan-internal
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        VITE_OPENROUTER_KEY: ${VITE_OPENROUTER_KEY}
+        VITE_HF_TOKEN: ${VITE_HF_TOKEN}
+        VITE_IMGBB_KEY: ${VITE_IMGBB_KEY:-}
+        VITE_CHAT_MODEL: ${VITE_CHAT_MODEL:-}
+        VITE_IMAGE_MODEL: ${VITE_IMAGE_MODEL:-}
+        VITE_API_URL: /prompterest
+    image: sinanaqcan/prompterest-frontend:latest
+    container_name: sinan-frontend
+    expose:
+      - "80"
+    depends_on:
+      - backend
+    restart: always
+    networks:
+      - nginx-proxy
+      - sinan-internal
+
+networks:
+  nginx-proxy:
+    external: true
+  sinan-internal:
+    driver: bridge

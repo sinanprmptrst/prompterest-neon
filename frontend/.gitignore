@@ -6,7 +6,9 @@ dist/
 web/
 
 # Environment
+.env
 .env.local
+.env.web
 
 # IDE
 .vscode/
