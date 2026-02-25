@@ -22,7 +22,7 @@ type PanelState = 'none' | 'left' | 'right';
 
 const SWIPE_THRESHOLD = 60;
 
-export function FeedCard({ prompt, onPanelChange }: FeedCardProps) {
+export function FeedCard({ prompt, onPanelChange }: Readonly<FeedCardProps>) {
   const toggleSave = useStore((s) => s.toggleSave);
   const savedPromptIds = useStore((s) => s.savedPromptIds);
   const activeVersionId = useStore((s) => s.activeVersionId);
@@ -59,9 +59,10 @@ export function FeedCard({ prompt, onPanelChange }: FeedCardProps) {
     const { offset } = info;
 
     if (panel !== 'none') {
-      if (panel === 'left' && offset.x < -SWIPE_THRESHOLD) {
-        closePanel();
-      } else if (panel === 'right' && offset.x > SWIPE_THRESHOLD) {
+      if (
+        (panel === 'left' && offset.x < -SWIPE_THRESHOLD) ||
+        (panel === 'right' && offset.x > SWIPE_THRESHOLD)
+      ) {
         closePanel();
       }
       return;
@@ -186,12 +187,22 @@ export function FeedCard({ prompt, onPanelChange }: FeedCardProps) {
       {/* Panels */}
       <AnimatePresence>
         {panel === 'left' && (
-          <div onClick={closePanel}>
+          <div
+            role="button"
+            tabIndex={0}
+            onClick={closePanel}
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); closePanel(); } }}
+          >
             <LeftPanel content={content} title={prompt.title} />
           </div>
         )}
         {panel === 'right' && (
-          <div onClick={closePanel}>
+          <div
+            role="button"
+            tabIndex={0}
+            onClick={closePanel}
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); closePanel(); } }}
+          >
             <RightPanel promptId={prompt.id} />
           </div>
         )}

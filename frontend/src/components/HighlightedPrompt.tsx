@@ -15,7 +15,7 @@ export function HighlightedPrompt({
   segments,
   selectedAlts,
   onSelectAlternative,
-}: HighlightedPromptProps) {
+}: Readonly<HighlightedPromptProps>) {
   const [activeSegmentId, setActiveSegmentId] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -87,9 +87,18 @@ export function HighlightedPrompt({
           return (
             <span key={seg.id} className="relative inline">
               <span
+                role="button"
+                tabIndex={0}
                 onClick={(e) => {
                   e.stopPropagation();
                   handleSegmentTap(seg.id);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleSegmentTap(seg.id);
+                  }
                 }}
                 className={[
                   'relative cursor-pointer transition-all duration-200',
@@ -135,7 +144,7 @@ function AlternativeDropdown({
   segment,
   selectedAltId,
   onSelect,
-}: AlternativeDropdownProps) {
+}: Readonly<AlternativeDropdownProps>) {
   return (
     <motion.div
       initial={{ opacity: 0, y: -4, scale: 0.95 }}

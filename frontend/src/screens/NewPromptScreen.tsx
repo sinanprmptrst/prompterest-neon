@@ -71,8 +71,9 @@ export function NewPromptScreen() {
 
       <div className="flex-1 overflow-y-auto overscroll-contain px-5 py-5 space-y-4">
         <div>
-          <label className="font-mono text-[10px] text-white/30 uppercase tracking-widest mb-2 block">Title</label>
+          <label htmlFor="prompt-title" className="font-mono text-[10px] text-white/30 uppercase tracking-widest mb-2 block">Title</label>
           <input
+            id="prompt-title"
             type="text"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
@@ -83,8 +84,9 @@ export function NewPromptScreen() {
         </div>
 
         <div>
-          <label className="font-mono text-[10px] text-white/30 uppercase tracking-widest mb-2 block">Prompt</label>
+          <label htmlFor="prompt-content" className="font-mono text-[10px] text-white/30 uppercase tracking-widest mb-2 block">Prompt</label>
           <textarea
+            id="prompt-content"
             value={content}
             onChange={(e) => setContent(e.target.value)}
             placeholder="Write your image generation prompt here..."

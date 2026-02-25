@@ -6,7 +6,7 @@ interface LeftPanelProps {
   title: string;
 }
 
-export function LeftPanel({ content, title }: LeftPanelProps) {
+export function LeftPanel({ content, title }: Readonly<LeftPanelProps>) {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = async () => {

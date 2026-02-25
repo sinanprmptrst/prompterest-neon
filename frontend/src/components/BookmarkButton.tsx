@@ -8,7 +8,7 @@ interface BookmarkButtonProps {
   size?: 'sm' | 'md';
 }
 
-export function BookmarkButton({ isBookmarked, onToggle, size = 'md' }: BookmarkButtonProps) {
+export function BookmarkButton({ isBookmarked, onToggle, size = 'md' }: Readonly<BookmarkButtonProps>) {
   const [animKey, setAnimKey] = useState(0);
   const iconSize = size === 'sm' ? 16 : 20;
 

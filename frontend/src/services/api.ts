@@ -99,16 +99,10 @@ Rules:
 - "original" must be an exact substring from the user's prompt
 - Exactly 3 segments, exactly 3 alternatives each`;
 
-function parseRawSegments(raw: string): Array<{ original: string; alternatives: string[] }> {
-  let text = raw;
-  text = text.replace(/<think>[\s\S]*?(<\/think>|$)/gi, '');
-  text = text.replace(/<reasoning>[\s\S]*?(<\/reasoning>|$)/gi, '');
-  text = text.replace(/```json\s*/gi, '').replace(/```\s*/gi, '').trim();
-
+function findJsonBounds(text: string): [number, number] | null {
   const startIdx = text.indexOf('{');
-  if (startIdx === -1) throw new Error('No JSON found in LLM response.');
-
-  let depth = 0, inStr = false, esc = false, endIdx = -1;
+  if (startIdx === -1) return null;
+  let depth = 0, inStr = false, esc = false;
   for (let i = startIdx; i < text.length; i++) {
     const ch = text[i];
     if (esc) { esc = false; continue; }
@@ -116,23 +110,26 @@ function parseRawSegments(raw: string): Array<{ original: string; alternatives: 
     if (ch === '"') { inStr = !inStr; continue; }
     if (inStr) continue;
     if (ch === '{') depth++;
-    else if (ch === '}') { depth--; if (depth === 0) { endIdx = i; break; } }
+    else if (ch === '}') { depth--; if (depth === 0) return [startIdx, i]; }
   }
-  if (endIdx === -1) throw new Error('Unbalanced JSON in LLM response.');
+  return null;
+}
 
-  const parsed = JSON.parse(text.slice(startIdx, endIdx + 1)) as Record<string, unknown>;
+function parseSegmentsFormat1(
+  parsed: Record<string, unknown>
+): Array<{ original: string; alternatives: string[] }> | null {
+  if (!Array.isArray(parsed.segments)) return null;
+  return (parsed.segments as Array<{ original: string; alternatives: string[] }>)
+    .slice(0, 3)
+    .map((s) => ({
+      original: s.original,
+      alternatives: Array.isArray(s.alternatives) ? s.alternatives.slice(0, 3) : [],
+    }));
+}
 
-  // Format 1: {"segments": [...]}
-  if (Array.isArray(parsed.segments)) {
-    return (parsed.segments as Array<{ original: string; alternatives: string[] }>)
-      .slice(0, 3)
-      .map((s) => ({
-        original: s.original,
-        alternatives: Array.isArray(s.alternatives) ? s.alternatives.slice(0, 3) : [],
-      }));
-  }
-
-  // Format 2 (flat map): {"phrase": ["alt1","alt2","alt3"]}
+function parseSegmentsFormat2(
+  parsed: Record<string, unknown>
+): Array<{ original: string; alternatives: string[] }> | null {
   const segments: Array<{ original: string; alternatives: string[] }> = [];
   for (const [key, value] of Object.entries(parsed)) {
     if (Array.isArray(value) && value.length > 0 && typeof value[0] === 'string') {
@@ -140,9 +137,23 @@ function parseRawSegments(raw: string): Array<{ original: string; alternatives: 
     }
     if (segments.length >= 3) break;
   }
-  if (segments.length > 0) return segments;
+  return segments.length > 0 ? segments : null;
+}
 
-  throw new Error('Could not extract segments from LLM response.');
+function parseRawSegments(raw: string): Array<{ original: string; alternatives: string[] }> {
+  let text = raw;
+  text = text.replaceAll(/<think>[\s\S]*?(<\/think>|$)/gi, '');
+  text = text.replaceAll(/<reasoning>[\s\S]*?(<\/reasoning>|$)/gi, '');
+  text = text.replaceAll(/```json\s*/gi, '').replaceAll(/```\s*/gi, '').trim();
+
+  const bounds = findJsonBounds(text);
+  if (!bounds) throw new Error('No JSON found in LLM response.');
+
+  const parsed = JSON.parse(text.slice(bounds[0], bounds[1] + 1)) as Record<string, unknown>;
+
+  const result = parseSegmentsFormat1(parsed) ?? parseSegmentsFormat2(parsed);
+  if (!result) throw new Error('Could not extract segments from LLM response.');
+  return result;
 }
 
 function toRefactorSegments(
@@ -219,11 +230,13 @@ async function callHfChat(promptText: string, model: string, token: string): Pro
   if (!res.ok) {
     const t = await res.text();
     let msg = `HF ${res.status}`;
-    try { msg = (JSON.parse(t) as { error?: { message?: string } | string }).error
-      ? typeof (JSON.parse(t) as { error: { message?: string } | string }).error === 'string'
-        ? (JSON.parse(t) as { error: string }).error
-        : ((JSON.parse(t) as { error: { message?: string } }).error?.message ?? msg)
-      : msg;
+    try {
+      const parsed = JSON.parse(t) as { error?: string | { message?: string } };
+      if (parsed.error) {
+        msg = typeof parsed.error === 'string'
+          ? parsed.error
+          : (parsed.error.message ?? msg);
+      }
     } catch { /* keep default */ }
     throw new Error(msg);
   }
@@ -234,6 +247,17 @@ async function callHfChat(promptText: string, model: string, token: string): Pro
   const msg = data.choices?.[0]?.message;
   // Some models put output in `reasoning` when content is empty
   return msg?.content || msg?.reasoning || '';
+}
+
+async function tryHfModelOnce(
+  promptText: string,
+  model: string,
+  token: string
+): Promise<Array<{ original: string; alternatives: string[] }>> {
+  const rawContent = await callHfChat(promptText, model, token);
+  const rawSegments = parseRawSegments(rawContent);
+  if (rawSegments.length === 0) throw new Error('No valid segments found.');
+  return rawSegments;
 }
 
 export async function refactorPrompt(prompt: string): Promise<RefactorResult> {
@@ -261,19 +285,17 @@ export async function refactorPrompt(prompt: string): Promise<RefactorResult> {
   for (const model of HF_CHAT_MODELS) {
     for (let attempt = 0; attempt < 2; attempt++) {
       try {
-        const rawContent = await callHfChat(prompt, model, token);
-        const rawSegments = parseRawSegments(rawContent);
+        const rawSegments = await tryHfModelOnce(prompt, model, token);
         const segments = toRefactorSegments(rawSegments, prompt);
-        if (segments.length === 0) throw new Error('No valid segments found.');
         return { originalPrompt: prompt, segments };
       } catch (err) {
         const e = err instanceof Error ? err : new Error('Failed');
         if (e.message === 'RATE_LIMIT') {
           lastError = new Error(`${model.split('/')[1]} rate limited, trying next...`);
-          break; // skip to next model
+          break;
         }
         lastError = e;
-        if (attempt === 0) continue; // retry once on parse errors
+        if (attempt === 0) continue;
       }
     }
   }

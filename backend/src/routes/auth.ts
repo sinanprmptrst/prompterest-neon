@@ -3,7 +3,7 @@ import { db } from '../db/index.js';
 import { users } from '../db/schema.js';
 import { eq } from 'drizzle-orm';
 import { SignJWT, jwtVerify } from 'jose';
-import { createHash, randomBytes } from 'crypto';
+import { createHash, randomBytes } from 'node:crypto';
 
 const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'change-me');
 

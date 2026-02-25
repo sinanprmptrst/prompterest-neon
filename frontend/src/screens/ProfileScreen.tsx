@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useStore } from '../store/useStore';
 import { hapticLight, hapticMedium } from '../utils/haptics';
-import { formatFullDate } from '../utils/time';
 
 export function ProfileScreen() {
   const user = useStore((s) => s.user);
@@ -40,6 +39,8 @@ export function ProfileScreen() {
 
   // ── NOT LOGGED IN ─────────────────────────────────────
   if (!user) {
+    const submitButtonLabel = isRegisterMode ? 'Create Account' : 'Sign In';
+
     return (
       <div className="w-full h-full bg-surface-0 overflow-y-auto overscroll-contain">
         <div className="sticky top-0 z-20 bg-surface-0/80 backdrop-blur-xl border-b border-white/[0.04]">
@@ -120,9 +121,7 @@ export function ProfileScreen() {
                   </svg>
                   {isRegisterMode ? 'Creating...' : 'Signing in...'}
                 </span>
-              ) : (
-                isRegisterMode ? 'Create Account' : 'Sign In'
-              )}
+              ) : submitButtonLabel}
             </button>
 
             <button
