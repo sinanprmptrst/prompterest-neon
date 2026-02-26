@@ -16,10 +16,12 @@ vps-info.txt
 cli-cheatsheet.txt
 info.txt
 DEPLOY_GUIDE.md
+DOCUMENTATION.md
 
 # SonarQube
 sonar-issues.json
 sonar-issues.md
 sonar-project.properties
 prompterest.conf
+sonarqube-scan-guide.md
 .scannerwork/
