@@ -86,8 +86,8 @@ export function HighlightedPrompt({
 
           return (
             <span key={seg.id} className="relative inline">
-              <span
-                role="button"
+              <button
+                type="button"
                 tabIndex={0}
                 onClick={(e) => {
                   e.stopPropagation();
@@ -111,7 +111,7 @@ export function HighlightedPrompt({
                 ].join(' ')}
               >
                 {getSegmentDisplayText(seg)}
-              </span>
+              </button>
 
               <AnimatePresence>
                 {isActive && (

@@ -189,7 +189,7 @@ export const useStore = create<AppState>()((set, get) => ({
     if (!user) throw new Error('Login required to save a version');
     const versionName = 'v' + (versionHistory.length + 1);
     const newVersion = await createVersion(promptId, newContent, versionName, imageUrl);
-    set({ prompts: prompts.map((p) => p.id !== promptId ? p : { ...p, currentVersionId: newVersion.id, currentVersion: newVersion }), activeVersionId: null, activeVersionData: null });
+    set({ prompts: prompts.map((p) => p.id === promptId ? { ...p, currentVersionId: newVersion.id, currentVersion: newVersion } : p), activeVersionId: null, activeVersionData: null });
   },
 
   editorPromptId: null,

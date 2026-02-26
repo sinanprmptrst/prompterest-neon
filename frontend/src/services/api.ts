@@ -99,23 +99,29 @@ Rules:
 - "original" must be an exact substring from the user's prompt
 - Exactly 3 segments, exactly 3 alternatives each`;
 
-function findJsonBounds(text: string): [number, number] | null {
+export interface JsonCharState { depth: number; inStr: boolean; esc: boolean; }
+
+export function processJsonChar(ch: string, state: JsonCharState): boolean {
+  if (state.esc) { state.esc = false; return false; }
+  if (ch === '\\') { state.esc = true; return false; }
+  if (ch === '"') { state.inStr = !state.inStr; return false; }
+  if (state.inStr) return false;
+  if (ch === '{') { state.depth++; return false; }
+  if (ch === '}') { state.depth--; return state.depth === 0; }
+  return false;
+}
+
+export function findJsonBounds(text: string): [number, number] | null {
   const startIdx = text.indexOf('{');
   if (startIdx === -1) return null;
-  let depth = 0, inStr = false, esc = false;
+  const state: JsonCharState = { depth: 0, inStr: false, esc: false };
   for (let i = startIdx; i < text.length; i++) {
-    const ch = text[i];
-    if (esc) { esc = false; continue; }
-    if (ch === '\\') { esc = true; continue; }
-    if (ch === '"') { inStr = !inStr; continue; }
-    if (inStr) continue;
-    if (ch === '{') depth++;
-    else if (ch === '}') { depth--; if (depth === 0) return [startIdx, i]; }
+    if (processJsonChar(text[i], state)) return [startIdx, i];
   }
   return null;
 }
 
-function parseSegmentsFormat1(
+export function parseSegmentsFormat1(
   parsed: Record<string, unknown>
 ): Array<{ original: string; alternatives: string[] }> | null {
   if (!Array.isArray(parsed.segments)) return null;
@@ -127,7 +133,7 @@ function parseSegmentsFormat1(
     }));
 }
 
-function parseSegmentsFormat2(
+export function parseSegmentsFormat2(
   parsed: Record<string, unknown>
 ): Array<{ original: string; alternatives: string[] }> | null {
   const segments: Array<{ original: string; alternatives: string[] }> = [];
@@ -140,7 +146,7 @@ function parseSegmentsFormat2(
   return segments.length > 0 ? segments : null;
 }
 
-function parseRawSegments(raw: string): Array<{ original: string; alternatives: string[] }> {
+export function parseRawSegments(raw: string): Array<{ original: string; alternatives: string[] }> {
   let text = raw;
   text = text.replaceAll(/<think>[\s\S]*?(<\/think>|$)/gi, '');
   text = text.replaceAll(/<reasoning>[\s\S]*?(<\/reasoning>|$)/gi, '');
@@ -260,8 +266,40 @@ async function tryHfModelOnce(
   return rawSegments;
 }
 
+type HfAttemptResult =
+  | { ok: true; segments: Array<{ original: string; alternatives: string[] }> }
+  | { ok: false; rateLimited: boolean; error: Error };
+
+async function attemptHfModel(
+  promptText: string,
+  model: string,
+  token: string
+): Promise<HfAttemptResult> {
+  try {
+    const rawSegments = await tryHfModelOnce(promptText, model, token);
+    return { ok: true, segments: rawSegments };
+  } catch (err) {
+    const e = err instanceof Error ? err : new Error('Failed');
+    return { ok: false, rateLimited: e.message === 'RATE_LIMIT', error: e };
+  }
+}
+
+async function tryHfFallback(prompt: string): Promise<RefactorResult> {
+  const token = import.meta.env.VITE_HF_TOKEN;
+  if (!token) throw new Error('VITE_HF_TOKEN is not set');
+  let lastError: Error = new Error('Refactor failed');
+  for (const model of HF_CHAT_MODELS) {
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const res = await attemptHfModel(prompt, model, token);
+      if (res.ok) return { originalPrompt: prompt, segments: toRefactorSegments(res.segments, prompt) };
+      if (res.rateLimited) { lastError = new Error(`${model.split('/')[1]} rate limited, trying next...`); break; }
+      lastError = res.error;
+    }
+  }
+  throw lastError;
+}
+
 export async function refactorPrompt(prompt: string): Promise<RefactorResult> {
-  // Try OpenRouter first (more reliable, free tier available)
   const openRouterKey = import.meta.env.VITE_OPENROUTER_KEY;
   const openRouterModel = import.meta.env.VITE_CHAT_MODEL || 'nvidia/nemotron-3-nano-30b-a3b:free';
 
@@ -276,31 +314,7 @@ export async function refactorPrompt(prompt: string): Promise<RefactorResult> {
     }
   }
 
-  // Fallback: HuggingFace
-  const token = import.meta.env.VITE_HF_TOKEN;
-  if (!token) throw new Error('VITE_HF_TOKEN is not set');
-
-  let lastError: Error = new Error('Refactor failed');
-
-  for (const model of HF_CHAT_MODELS) {
-    for (let attempt = 0; attempt < 2; attempt++) {
-      try {
-        const rawSegments = await tryHfModelOnce(prompt, model, token);
-        const segments = toRefactorSegments(rawSegments, prompt);
-        return { originalPrompt: prompt, segments };
-      } catch (err) {
-        const e = err instanceof Error ? err : new Error('Failed');
-        if (e.message === 'RATE_LIMIT') {
-          lastError = new Error(`${model.split('/')[1]} rate limited, trying next...`);
-          break;
-        }
-        lastError = e;
-        if (attempt === 0) continue;
-      }
-    }
-  }
-
-  throw lastError;
+  return tryHfFallback(prompt);
 }
 
 export async function generateImage(

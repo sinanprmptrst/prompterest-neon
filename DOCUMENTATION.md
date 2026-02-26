@@ -17,7 +17,6 @@
 9. [Butonların Çalışma Mantığı](#9-butonların-çalışma-mantığı)
 10. [User Flow](#10-user-flow)
 11. [API Referansı](#11-api-referansı)
-12. [Test Coverage & Kod Kalitesi](#12-test-coverage--kod-kalitesi)
 
 ---
 
@@ -587,88 +586,6 @@ Tüm hatalar `{ error: string }` formatında JSON döner.
 
 ---
 
----
-
-## 12. Test Coverage & Kod Kalitesi
-
-### Test Altyapısı
-
-Hem frontend hem backend için ayrı test setleri mevcuttur.
-
-#### Backend Testleri (Vitest)
-
-`backend/vitest.config.ts` ile yapılandırılmıştır. Testler `backend/src/routes/` altındaki route handler'larını kapsar.
-
-```
-backend/src/routes/
-├── auth.test.ts      ← register/login endpoint testleri (mock DB)
-└── prompts.test.ts   ← CRUD, save/unsave, versions endpoint testleri (mock DB)
-```
-
-Çalıştırma:
-```bash
-cd backend
-npm run test:coverage   # lcov.info → coverage/ altına üretilir
-```
-
-#### Frontend Testleri (Vitest + React Testing Library)
-
-```
-frontend/src/
-├── services/api.test.ts              ← fetch mock ile API fonksiyonları
-├── components/FeedCard.test.tsx      ← swipe, bookmark, refactor etkileşimleri
-├── utils/haptics.test.ts             ← platform dallanma (native/web)
-├── components/BookmarkButton.test.tsx
-├── components/HighlightedPrompt.test.tsx
-├── components/LeftPanel.test.tsx
-├── components/RightPanel.test.tsx
-├── screens/FeedScreen.test.tsx
-├── screens/NewPromptScreen.test.tsx
-├── screens/ProfileScreen.test.tsx
-├── screens/PromptEditorScreen.test.tsx
-├── screens/SavedScreen.test.tsx
-├── store/useStore.test.ts
-├── store/useStore.actions.test.ts
-└── utils/time.test.ts
-```
-
-Çalıştırma:
-```bash
-cd frontend
-npm run test:coverage   # lcov.info → coverage/ altına üretilir
-```
-
-### SonarQube Analiz Sonuçları
-
-Proje SonarQube Community (local Docker) ile analiz edilmiştir. `sonar-project.properties` kök dizindedir, tarama rehberi için `sonarqube-scan-guide.md` dosyasına bakınız.
-
-![SonarQube Stats](sonarqube-stats.png)
-
-| Metrik | Sonuç |
-|--------|-------|
-| **Quality Gate** | ✅ Passed |
-| **Security** | A — 0 açık sorun |
-| **Reliability** | A — 0 açık sorun |
-| **Maintainability** | A — 0 açık sorun |
-| **Security Hotspots** | A — 0 sorun |
-| **Coverage** | 72.0% (841 satır üzerinde) |
-| **Duplications** | 1.0% (3.1k satır üzerinde) |
-| **Accepted Issues** | 0 |
-| **Toplam Kod** | ~2.8k satır |
-
-Tarayıcı çalıştırmak için:
-```powershell
-# 1. Coverage üret
-cd frontend; npm run test:coverage
-cd ../backend; npm run test:coverage
-cd ..
-
-# 2. SonarQube scanner çalıştır
-docker run --rm --network host -v "${PWD}:/usr/src" sonarsource/sonar-scanner-cli
-```
-
----
-
 *Canlı URL: https://www.sinanakcan.com/prompterest*
 
 ---
@@ -677,17 +594,13 @@ docker run --rm --network host -v "${PWD}:/usr/src" sonarsource/sonar-scanner-cl
 
 ### 2026-02-26
 
-**Test altyapısı ve SonarQube entegrasyonu eklendi.**
+Test altyapısı ve SonarQube entegrasyonu eklendi.
 
-#### Eklenenler
-- **Backend Vitest kurulumu**: `vitest.config.ts` ile `auth.test.ts` ve `prompts.test.ts` yazıldı; route handler'lar mock DB ile test ediliyor
-- **Frontend test dosyaları**: `api.test.ts` (fetch mock), `FeedCard.test.tsx` (swipe & etkileşim), `haptics.test.ts` (platform dallanma) dahil 14 test dosyası eklendi
-- **SonarQube analizi**: Quality Gate `Passed`; Security/Reliability/Maintainability hepsi **A** rating; coverage **%72.0**, duplications **%1.0**
-- **`sonarqube-scan-guide.md`**: Lokal SonarQube taraması için adım adım rehber
-- **`sonarqube-stats.png`**: SonarQube dashboard ekran görüntüsü dokümantasyona eklendi
-- **`docs/` klasörü**: Geliştirme planları ve tasarım notları
-
-#### Değiştirilenler
-- `SonarQube` analizinden kaynaklanan kod kalite düzeltmeleri uygulandı (1fb1d57)
-- `api.ts` refactor edildi, `HighlightedPrompt.tsx`, `RightPanel.tsx`, `PromptEditorScreen.tsx`, `SavedScreen.tsx` güncellendi
+- Backend Vitest: `auth.test.ts`, `prompts.test.ts` (mock DB ile route testleri)
+- Frontend: 14 test dosyası eklendi (api, FeedCard, haptics, store, screens…)
+- SonarQube analizi — Quality Gate: **Passed** · Coverage: **%72** · Security/Reliability/Maintainability: **A** · Duplications: **%1**
+- `sonarqube-scan-guide.md` ve `sonarqube-stats.png` eklendi
+- SonarQube bulgularına göre kod kalite düzeltmeleri uygulandı (`api.ts`, `RightPanel`, `PromptEditorScreen`, `SavedScreen`, `HighlightedPrompt`)
 - `pb.ts` (PocketBase kalıntısı) kaldırıldı
+
+![SonarQube Stats](sonarqube-stats.png)

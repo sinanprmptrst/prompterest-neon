@@ -59,3 +59,26 @@ docker run --rm --network host -v "${PWD}:/usr/src" sonarsource/sonar-scanner-cl
 - SonarQube token: `sonar-project.properties` dosyasında mevcut
 - URL: http://localhost:9000
 - Project key: `prompterest-sonarqube`
+
+## Claude'dan Gelen Komutlar (WORKS)
+Sen testleri çalıştırırsın → lcov.info oluşur
+Scanner o dosyayı okur → SonarQube'a gönderir
+
+
+cd "c:\Users\sinan\Desktop\All\VSCode Repos\prompterest-neon\frontend"
+
+npm run test:coverage
+
+Bittikten sonra bu dosya var mı kontrol et:
+
+
+ls coverage/lcov.info
+Varsa scanner'ı çalıştır, coverage gelir.
+-----------------------------------------------
+Testler çalıştı ve coverage çıktı. Şimdi lcov.info dosyası oluştu mu kontrol et:
+
+Varsa scanner'ı çalıştır:
+
+
+cd "c:\Users\sinan\Desktop\All\VSCode Repos\prompterest-neon"
+docker run --rm --network host -v "${PWD}:/usr/src" sonarsource/sonar-scanner-cli

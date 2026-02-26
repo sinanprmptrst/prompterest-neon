@@ -187,24 +187,14 @@ export function FeedCard({ prompt, onPanelChange }: Readonly<FeedCardProps>) {
       {/* Panels */}
       <AnimatePresence>
         {panel === 'left' && (
-          <div
-            role="button"
-            tabIndex={0}
-            onClick={closePanel}
-            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); closePanel(); } }}
-          >
+          <button type="button" onClick={closePanel} className="absolute inset-0 w-full h-full bg-transparent border-0 p-0 cursor-default">
             <LeftPanel content={content} title={prompt.title} />
-          </div>
+          </button>
         )}
         {panel === 'right' && (
-          <div
-            role="button"
-            tabIndex={0}
-            onClick={closePanel}
-            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); closePanel(); } }}
-          >
+          <button type="button" onClick={closePanel} className="absolute inset-0 w-full h-full bg-transparent border-0 p-0 cursor-default">
             <RightPanel promptId={prompt.id} />
-          </div>
+          </button>
         )}
       </AnimatePresence>
     </div>

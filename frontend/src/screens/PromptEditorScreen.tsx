@@ -5,6 +5,41 @@ import { useRefactor } from '../hooks/useRefactor';
 import { generateImage } from '../services/api';
 import { HighlightedPrompt } from '../components/HighlightedPrompt';
 
+function getRefactorIcon(isLoading: boolean) {
+  if (isLoading) {
+    return (
+      <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
+        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+      </svg>
+    );
+  }
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 12a9 9 0 11-6.219-8.56" />
+      <polyline points="21 3 21 9 15 9" />
+    </svg>
+  );
+}
+
+function getGenerateIcon(imageLoading: boolean) {
+  if (imageLoading) {
+    return (
+      <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
+        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+      </svg>
+    );
+  }
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="3" width="18" height="18" rx="2" />
+      <circle cx="8.5" cy="8.5" r="1.5" />
+      <path d="M21 15l-5-5L5 21" />
+    </svg>
+  );
+}
+
 export function PromptEditorScreen() {
   const editorPromptId = useStore((s) => s.editorPromptId);
   const closeEditor = useStore((s) => s.closeEditor);
@@ -25,7 +60,6 @@ export function PromptEditorScreen() {
   const [isManualEdit, setIsManualEdit] = useState(false);
   const [manualContent, setManualContent] = useState('');
   const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null);
-  const [generatedImageBlob, setGeneratedImageBlob] = useState<Blob | null>(null);
   const [imageLoading, setImageLoading] = useState(false);
   const [imageError, setImageError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -59,9 +93,8 @@ export function PromptEditorScreen() {
     setImageLoading(true);
     setImageError(null);
     try {
-      const { imageUrl, imageBlob } = await generateImage(currentContent);
+      const { imageUrl } = await generateImage(currentContent);
       setGeneratedImageUrl(imageUrl);
-      setGeneratedImageBlob(imageBlob);
     } catch (err) {
       setImageError(err instanceof Error ? err.message : 'Image generation failed');
     } finally {
@@ -93,30 +126,8 @@ export function PromptEditorScreen() {
   const isLoading = refactor.phase === 'loading';
   const isBusy = isLoading || imageLoading || saving;
 
-  const refactorButtonIcon = isLoading ? (
-    <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
-      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-    </svg>
-  ) : (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M21 12a9 9 0 11-6.219-8.56" />
-      <polyline points="21 3 21 9 15 9" />
-    </svg>
-  );
-
-  const generateButtonIcon = imageLoading ? (
-    <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
-      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-    </svg>
-  ) : (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="3" y="3" width="18" height="18" rx="2" />
-      <circle cx="8.5" cy="8.5" r="1.5" />
-      <path d="M21 15l-5-5L5 21" />
-    </svg>
-  );
+  const refactorButtonIcon = getRefactorIcon(isLoading);
+  const generateButtonIcon = getGenerateIcon(imageLoading);
 
   const applyButtonContent = saving ? (
     <>
@@ -135,27 +146,34 @@ export function PromptEditorScreen() {
     </>
   );
 
-  const promptBoxContent = isManualEdit ? (
-    <textarea
-      value={manualContent}
-      onChange={(e) => setManualContent(e.target.value)}
-      autoFocus
-      rows={8}
-      className="w-full bg-transparent font-body text-[15px] leading-relaxed text-white/90 outline-none resize-none placeholder:text-white/25"
-      placeholder="Edit your prompt..."
-    />
-  ) : isRefactorActive && refactor.result ? (
-    <HighlightedPrompt
-      originalPrompt={refactor.result.originalPrompt}
-      segments={refactor.result.segments}
-      selectedAlts={refactor.selectedAlts}
-      onSelectAlternative={refactor.selectAlternative}
-    />
-  ) : (
-    <p className="font-body text-[15px] leading-relaxed text-white/80">
-      {content || <span className="text-white/30">No content</span>}
-    </p>
-  );
+  let promptBoxContent: JSX.Element;
+  if (isManualEdit) {
+    promptBoxContent = (
+      <textarea
+        value={manualContent}
+        onChange={(e) => setManualContent(e.target.value)}
+        autoFocus
+        rows={8}
+        className="w-full bg-transparent font-body text-[15px] leading-relaxed text-white/90 outline-none resize-none placeholder:text-white/25"
+        placeholder="Edit your prompt..."
+      />
+    );
+  } else if (isRefactorActive && refactor.result) {
+    promptBoxContent = (
+      <HighlightedPrompt
+        originalPrompt={refactor.result.originalPrompt}
+        segments={refactor.result.segments}
+        selectedAlts={refactor.selectedAlts}
+        onSelectAlternative={refactor.selectAlternative}
+      />
+    );
+  } else {
+    promptBoxContent = (
+      <p className="font-body text-[15px] leading-relaxed text-white/80">
+        {content || <span className="text-white/30">No content</span>}
+      </p>
+    );
+  }
 
   return (
     <motion.div
